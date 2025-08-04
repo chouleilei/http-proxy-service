@@ -27,11 +27,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3.1.1
-        with:
-          cosign-release: 'v2.1.1'
+      # - name: Install cosign
+      #   if: github.event_name != 'pull_request'
+      #   uses: sigstore/cosign-installer@v3.1.1
+      #   with:
+      #     cosign-release: 'v2.1.1'
 
       # 设置 BuildKit Docker 容器构建器
       - name: Setup Docker buildx
@@ -74,14 +74,14 @@ jobs:
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
 
-      # 使用 cosign 签名容器镜像
-      - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
-          TAGS: ${{ steps.meta.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push.outputs.digest }}
-        # 这一步使用身份令牌来提供短期证书
-        # 这些证书只在作业运行时有效，因此后续的重新运行将自动获得新的证书。
-        # 不需要手动管理证书的生命周期。
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+      # # 使用 cosign 签名容器镜像 (暂时禁用，因为TUF存在问题)
+      # - name: Sign the published Docker image
+      #   if: ${{ github.event_name != 'pull_request' }}
+      #   env:
+      #     # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
+      #     TAGS: ${{ steps.meta.outputs.tags }}
+      #     DIGEST: ${{ steps.build-and-push.outputs.digest }}
+      #   # 这一步使用身份令牌来提供短期证书
+      #   # 这些证书只在作业运行时有效，因此后续的重新运行将自动获得新的证书。
+      #   # 不需要手动管理证书的生命周期。
+      #   run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
