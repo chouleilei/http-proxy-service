@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代理状态监控面板</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .proxy-list {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .proxy-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .proxy-item:last-child {
+            border-bottom: none;
+        }
+        .proxy-info {
+            flex: 1;
+        }
+        .proxy-host {
+            font-weight: bold;
+            color: #333;
+        }
+        .proxy-details {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-offline {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-unknown {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 代理状态监控面板</h1>
+            <p>实时监控代理池状态和健康情况</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-proxies">-</div>
+                <div>总代理数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="online-proxies">-</div>
+                <div>在线代理</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="offline-proxies">-</div>
+                <div>离线代理</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avg-response">-</div>
+                <div>平均响应(ms)</div>
+            </div>
+        </div>
+
+        <div style="text-align: center;">
+            <button class="refresh-btn" onclick="loadProxies()">🔄 刷新数据</button>
+            <button class="refresh-btn" onclick="refreshPool()">🔄 刷新代理池</button>
+            <button class="refresh-btn" onclick="healthCheck()">🔍 健康检查</button>
+        </div>
+
+        <div class="proxy-list" id="proxy-list">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadProxies() {
+            try {
+                const response = await fetch('/api/proxies');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayProxies(data.data);
+                } else {
+                    showError('获取代理数据失败');
+                }
+            } catch (error) {
+                showError('连接服务器失败: ' + error.message);
+            }
+        }
+
+        function displayProxies(proxies) {
+            const totalProxies = proxies.length;
+            const onlineProxies = proxies.filter(p => p.status === 'online').length;
+            const offlineProxies = totalProxies - onlineProxies;
+            
+            const responseTimes = proxies.filter(p => p.responseTime).map(p => p.responseTime);
+            const avgResponse = responseTimes.length > 0 ? 
+                Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length) : 0;
+
+            document.getElementById('total-proxies').textContent = totalProxies;
+            document.getElementById('online-proxies').textContent = onlineProxies;
+            document.getElementById('offline-proxies').textContent = offlineProxies;
+            document.getElementById('avg-response').textContent = avgResponse || '-';
+
+            const proxyList = document.getElementById('proxy-list');
+            
+            if (proxies.length === 0) {
+                proxyList.innerHTML = '<div class="loading">暂无代理数据</div>';
+                return;
+            }
+
+            proxyList.innerHTML = proxies.map(proxy => `
+                <div class="proxy-item">
+                    <div class="proxy-info">
+                        <div class="proxy-host">${proxy.host}:${proxy.port}</div>
+                        <div class="proxy-details">
+                            协议: ${proxy.protocol.toUpperCase()} | 
+                            添加时间: ${proxy.addTime} |
+                            ${proxy.lastCheck ? '最后检查: ' + proxy.lastCheck : '未检查'}
+                            ${proxy.responseTime ? '| 响应时间: ' + proxy.responseTime + 'ms' : ''}
+                        </div>
+                    </div>
+                    <span class="status-badge status-${proxy.status}">
+                        ${proxy.status === 'online' ? '在线' : 
+                          proxy.status === 'offline' ? '离线' : '未知'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        async function refreshPool() {
+            try {
+                const response = await fetch('/api/refresh', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('代理池刷新完成');
+                    loadProxies();
+                } else {
+                    alert('刷新失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+
+        async function healthCheck() {
+            try {
+                const response = await fetch('/api/health-check', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('健康检查完成');
+                    loadProxies();
+                } else {
+                    alert('检查失败: ' + data.message);
+                }
+            } catch (error) {
+                alert('请求失败: ' + error.message);
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('proxy-list').innerHTML = 
+                `<div class="error">${message}</div>`;
+        }
+
+        // 页面加载时自动获取数据
+        loadProxies();
+        
+        // 每30秒自动刷新一次
+        setInterval(loadProxies, 30000);
+    </script>
+</body>
+</html>

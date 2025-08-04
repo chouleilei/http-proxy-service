@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  http-proxy-service:
+    # 使用 GitHub Container Registry 上的镜像
+    image: ghcr.io/chouleilei/http-proxy-service:latest
+    container_name: http-proxy-service
+    ports:
+      - "5237:5237"  # API 服务器端口
+      - "5238:5238"  # 代理服务器端口
+    environment:
+      # 必须修改以下环境变量为您自己的值
+      - UPSTREAM_PROXY_URL=${UPSTREAM_PROXY_URL}  # 必需：上游代理URL
+      - PROXY_USERNAME=${PROXY_USERNAME}          # 必需：代理认证用户名
+      - PROXY_PASSWORD=${PROXY_PASSWORD}          # 必需：代理认证密码
+      
+      # 可选配置（可以保持默认值）
+      - API_PORT=5237
+      - PROXY_PORT=5238
+      - MAX_POOL_SIZE=10
+      
+      # Node.js 环境
+      - NODE_ENV=production
+    
+    volumes:
+      # 持久化日志文件
+      - ./logs:/app/logs
+    
+    restart: unless-stopped
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5237/api/proxies"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# 网络配置（可选）
+networks:
+  default:
+    driver: bridge
