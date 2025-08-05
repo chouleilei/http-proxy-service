@@ -1,0 +1,66 @@
+version: '3.3'
+
+services:
+  http-proxy-service:
+    image: ghcr.io/chouleilei/http-proxy-service:latest
+    container_name: http-proxy-service-v2
+    ports:
+      - "5237:5237"  # API 服务器端口
+      - "5238:5238"  # 代理服务器1端口
+      - "5239:5239"  # 代理服务器2端口
+      #- "5240:5240"  # HTTPS代理服务器2端口 (可选)
+      #- "5241:5241"  # HTTPS API服务器端口 (可选)
+    environment:
+      # 基础配置 - 请根据需要修改
+      - UPSTREAM_PROXY_URL=  # 上游代理URL (可选)
+      - PROXY1_USERNAME=                               # 代理1用户名 (可选)
+      - PROXY1_PASSWORD=                               # 代理1密码 (可选)
+      - PROXY2_PASSWORD=                               # 代理2密码 (可选)
+      
+      # 服务端口配置
+      - API_PORT=5237
+      - PROXY1_PORT=5238
+      - PROXY2_PORT=5239
+      - HTTPS_PROXY2_PORT=5240
+      - HTTPS_API_PORT=5241
+      - HOST=0.0.0.0
+      
+      # 代理池配置
+      - MAX_POOL_SIZE=10                    # 最大代理池大小
+      - REFRESH_INTERVAL=300000             # 代理刷新间隔(5分钟)
+      - HEALTH_CHECK_INTERVAL=600000        # 健康检查间隔(10分钟)
+      - CONCURRENT_HEALTH_CHECKS=3          # 并发健康检查数
+      - TEST_TIMEOUT=4000                   # 测试超时时间(4秒)
+      
+      # 日志和监控
+      - LOG_LEVEL=info                      # 日志级别: debug, info, warn, error
+      - MONITORING_ENABLED=true             # 启用性能监控
+      - SSL_ENABLED=false                   # SSL支持 (设为true需要证书)
+      
+      # Node.js 环境
+      - NODE_ENV=production
+    
+    # 使用用户权限运行容器，避免权限问题
+    user: "1000:1000"
+    
+    volumes:
+      # 持久化日志文件 - 使用正确的权限
+      - ./logs:/app/logs:rw
+      # 持久化备份文件 - 使用正确的权限
+      - ./backups:/app/backups:rw
+    
+    restart: unless-stopped
+    
+    # 健康检查 - 增加启动等待时间
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5237/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    
+    # 资源限制 - 根据VPS配置调整
+
+# 网络配置
+networks:
+  default:
+    driver: bridge
