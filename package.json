@@ -1,0 +1,98 @@
+{
+  "name": "http-proxy-service",
+  "version": "2.0.0",
+  "description": "HTTP代理服务 - 重构版本，支持代理池管理、性能监控、优雅关闭等企业级功能",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "deploy": "node scripts/deploy.js",
+    "deploy:prod": "NODE_ENV=production node scripts/deploy.js",
+    "health-check": "node scripts/health-check.js",
+    "logs": "tail -f logs/proxy.log",
+    "logs:error": "tail -f logs/proxy.error.log",
+    "monitor": "node scripts/monitor.js",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "express": "^4.18.2",
+    "moment": "^2.29.4",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "eslint": "^8.55.0",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.29.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^6.1.1",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "proxy",
+    "http",
+    "https",
+    "service",
+    "pool",
+    "monitoring",
+    "performance",
+    "enterprise",
+    "scalable"
+  ],
+  "author": {
+    "name": "HTTP Proxy Service Team",
+    "email": "support@proxy-service.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/http-proxy-service.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/http-proxy-service/issues"
+  },
+  "homepage": "https://github.com/your-org/http-proxy-service#readme",
+  "config": {
+    "unsafe-perm": true
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverage": true,
+    "coverageDirectory": "coverage",
+    "coverageReporters": ["text", "lcov", "html"],
+    "testMatch": [
+      "**/tests/**/*.test.js",
+      "**/src/**/*.test.js"
+    ]
+  },
+  "eslintConfig": {
+    "extends": ["standard"],
+    "env": {
+      "node": true,
+      "jest": true
+    },
+    "rules": {
+      "no-console": "warn",
+      "prefer-const": "error",
+      "no-unused-vars": "error"
+    }
+  },
+  "nodemonConfig": {
+    "watch": ["src/"],
+    "ext": "js,json",
+    "ignore": ["logs/", "coverage/", "node_modules/"],
+    "delay": 1000
+  }
+}
